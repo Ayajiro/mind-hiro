@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'fs'
-import { join, extname, basename, resolve } from 'path'
+import { join, extname, basename, resolve, relative } from 'path'
 import { generate } from './generator.js'
 import type { MindMapFile } from '../shared/types.js'
 
@@ -23,6 +23,7 @@ function printHelp(): void {
 }
 
 function collectFiles(dir: string, recursive: boolean): MindMapFile[] {
+  const root = resolve(dir)
   const files: MindMapFile[] = []
 
   function scan(currentDir: string): void {
@@ -46,12 +47,15 @@ function collectFiles(dir: string, recursive: boolean): MindMapFile[] {
       } else if (extname(entry).toLowerCase() === '.md') {
         const content = readFileSync(fullPath, 'utf-8')
         const name = basename(entry, '.md')
-        files.push({ name, content })
+        // Record relative subfolder path (empty string for root-level files)
+        const relDir = relative(root, currentDir).replace(/\\/g, '/')
+        const file: MindMapFile = relDir ? { name, content, folder: relDir } : { name, content }
+        files.push(file)
       }
     }
   }
 
-  scan(resolve(dir))
+  scan(root)
   return files
 }
 
